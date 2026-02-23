@@ -8,7 +8,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from .triangle_io import build_exposure_triangle, triangle_to_frame
+from .triangle_io import _import_chainladder, build_exposure_triangle, triangle_to_frame
 
 _META_COLUMNS = {"origin", "development", "valuation"}
 
@@ -22,16 +22,6 @@ class MethodResult:
     ibnr_total: float
     latest_reported_total: float
     assumption_notes: str
-
-
-def _import_chainladder() -> Any:
-    try:
-        import chainladder as cl
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError(
-            "chainladder is required for this method. Install it in your exam5 environment."
-        ) from exc
-    return cl
 
 
 def _detect_value_column(frame: pd.DataFrame) -> str:
@@ -661,6 +651,336 @@ def run_frequency_severity_friedland(
             "severity": _pattern_dict(sev_model.cdf_),
         },
         "tail_assumption": "none",
+    }
+    return result, summary, artifacts
+
+
+def _origin_to_year_series(index: pd.Index) -> pd.Series:
+    """Convert an origin index to numeric calendar years for trend fitting."""
+    if hasattr(index, "year"):
+        return pd.Series(index.year, index=index, dtype=float)
+    years: list[float] = []
+    for v in index:
+        try:
+            years.append(float(str(v)[:4]))
+        except (ValueError, TypeError):
+            years.append(float("nan"))
+    return pd.Series(years, index=index, dtype=float)
+
+
+def run_frequency_severity_technique2(
+    cumulative_count_triangle: Any,
+    severity_triangle: Any,
+    exposure: pd.Series,
+    *,
+    n_mature_origins: int = 5,
+    count_n_periods: int = -1,
+    severity_n_periods: int = -1,
+    latest_reported_claims: pd.Series | None = None,
+) -> tuple[MethodResult, pd.DataFrame, dict[str, Any]]:
+    """Track B: Frequency-Severity Technique 2 — trend-projected frequency and severity.
+
+    Friedland Chapter 11, Technique 2:
+    1. Develop counts and severities to ultimate (same as Technique 1).
+    2. For the ``n_mature_origins`` oldest/most-developed accident years, derive:
+         implied frequency = projected ultimate count / exposure
+         implied severity  = projected ultimate severity
+    3. Fit a log-linear trend to each across accident years.
+    4. Project frequency and severity for all years using the fitted trends.
+    5. Ultimate claims = exposure × projected frequency × projected severity.
+
+    When recent accident years are immature, development-based ultimates are
+    unreliable.  The trend bridges from the stable older years to the newer
+    ones, making Technique 2 more stable for the most recent cohorts.
+    """
+    cl = _import_chainladder()
+
+    # Step 1: Develop counts and severity to ultimate (Technique 1 base)
+    count_prepared, count_dev = fit_development(
+        cumulative_count_triangle, n_periods=count_n_periods
+    )
+    sev_prepared, sev_dev = fit_development(severity_triangle, n_periods=severity_n_periods)
+    count_model = cl.Chainladder().fit(count_prepared)
+    sev_model = cl.Chainladder().fit(sev_prepared)
+
+    ultimate_count = _triangle_series_by_origin(count_model.ultimate_)
+    ultimate_severity = _triangle_series_by_origin(sev_model.ultimate_)
+
+    idx = ultimate_count.index.union(ultimate_severity.index)
+    ult_cnt = ultimate_count.reindex(idx).astype(float)
+    ult_sev = ultimate_severity.reindex(idx).astype(float)
+    exposure_aligned = _align_external_origin_series(exposure.astype(float), idx)
+
+    # Step 2: Implied frequency from Technique 1 ultimates
+    frequency = ult_cnt / exposure_aligned
+
+    # Oldest n_mature_origins rows are most developed
+    mature_origins = idx[:n_mature_origins] if len(idx) >= n_mature_origins else idx
+    ay_numeric = _origin_to_year_series(idx)
+
+    freq_mature = frequency.loc[mature_origins].dropna()
+    sev_mature = ult_sev.loc[mature_origins].dropna()
+
+    # Step 3: Fit log-linear trends; fall back to constant mean if insufficient data
+    freq_slope: float | None = None
+    sev_slope: float | None = None
+
+    if len(freq_mature) >= 2 and (freq_mature > 0).all():
+        freq_b, freq_a = np.polyfit(
+            _origin_to_year_series(freq_mature.index).to_numpy(dtype=float),
+            np.log(freq_mature.to_numpy(dtype=float)),
+            1,
+        )
+        freq_slope = float(freq_b)
+        projected_frequency: pd.Series = pd.Series(
+            np.exp(freq_a + freq_b * ay_numeric.to_numpy(dtype=float)), index=idx
+        )
+    else:
+        projected_frequency = pd.Series(float(freq_mature.mean()), index=idx)
+
+    if len(sev_mature) >= 2 and (sev_mature > 0).all():
+        sev_b, sev_a = np.polyfit(
+            _origin_to_year_series(sev_mature.index).to_numpy(dtype=float),
+            np.log(sev_mature.to_numpy(dtype=float)),
+            1,
+        )
+        sev_slope = float(sev_b)
+        projected_severity: pd.Series = pd.Series(
+            np.exp(sev_a + sev_b * ay_numeric.to_numpy(dtype=float)), index=idx
+        )
+    else:
+        projected_severity = pd.Series(float(sev_mature.mean()), index=idx)
+
+    # Step 4: Ultimate = exposure × projected_frequency × projected_severity
+    ultimate_claims = exposure_aligned * projected_frequency * projected_severity
+
+    if latest_reported_claims is not None:
+        latest = _align_external_origin_series(latest_reported_claims, idx)
+    else:
+        latest_count_diag = _triangle_series_by_origin(
+            cumulative_count_triangle.latest_diagonal
+        )
+        latest_sev_diag = _triangle_series_by_origin(severity_triangle.latest_diagonal)
+        latest = latest_count_diag.reindex(idx) * latest_sev_diag.reindex(idx)
+
+    ibnr = ultimate_claims - latest
+    summary = pd.DataFrame(
+        {
+            "exposure": exposure_aligned,
+            "projected_frequency": projected_frequency,
+            "projected_severity": projected_severity,
+            "ultimate": ultimate_claims,
+            "latest": latest,
+            "ibnr": ibnr,
+        },
+        index=idx,
+    )
+    summary = _normalize_summary_index(summary.sort_index())
+    result = _method_result(
+        "Frequency-Severity Technique 2 (Track B)",
+        summary,
+        (
+            f"Trend-projected frequency and severity applied to exposure. "
+            f"Trend fitted from {n_mature_origins} most mature origin years."
+        ),
+    )
+    artifacts = {
+        "track": "track_b",
+        "count_model": count_model,
+        "severity_model": sev_model,
+        "count_development_model": count_dev,
+        "severity_development_model": sev_dev,
+        "frequency_trend_slope": freq_slope,
+        "severity_trend_slope": sev_slope,
+        "selected_ldfs_by_age": {
+            "count": _pattern_dict(count_model.ldf_),
+            "severity": _pattern_dict(sev_model.ldf_),
+        },
+        "selected_cdfs_by_age": {
+            "count": _pattern_dict(count_model.cdf_),
+            "severity": _pattern_dict(sev_model.cdf_),
+        },
+        "tail_assumption": "none",
+    }
+    return result, summary, artifacts
+
+
+def run_disposal_rate(
+    closed_count_triangle: Any,
+    paid_claims_triangle: Any,
+    disposal_rate_triangle: Any,
+    *,
+    count_n_periods: int = -1,
+    n_tail_ages: int = 3,
+    dr_n_periods: int = 5,
+) -> tuple[MethodResult, pd.DataFrame, dict[str, Any]]:
+    """Track B: Disposal Rate method (Friedland Chapter 13).
+
+    The disposal rate DR(w, d) = cumulative closed claims at age d for origin w
+    divided by ultimate closed claims for that origin.  It represents the
+    proportion of ultimate closed claims settled by a given development age.
+
+    Steps:
+    1. Develop cumulative closed claim counts to ultimate using Development +
+       Chainladder to obtain ultimate closed counts by origin year.
+    2. For each development age, select a disposal rate using the simple average
+       of the most recent ``dr_n_periods`` observed values.  Enforce monotone
+       increase and cap at 1.0; set the final age to exactly 1.0.
+    3. Compute incremental severity at each age = incremental paid / incremental
+       closed counts.  For the last ``n_tail_ages`` development ages, use their
+       mean as a stable tail severity assumption.
+    4. For each origin year at its current latest age, project future paid
+       claims as the sum over future ages of:
+         projected incremental closed × selected incremental severity.
+    5. Ultimate paid = latest paid + projected future paid.
+    """
+    cl = _import_chainladder()
+
+    # Step 1: Develop closed counts to ultimate
+    count_prepared, count_dev = fit_development(
+        closed_count_triangle, n_periods=count_n_periods
+    )
+    count_model = cl.Chainladder().fit(count_prepared)
+    ultimate_closed = _triangle_series_by_origin(count_model.ultimate_)
+
+    # Build wide matrices
+    dr_wide = _triangle_to_segment_wide(disposal_rate_triangle)
+    closed_wide = _triangle_to_segment_wide(closed_count_triangle)
+    paid_wide = _triangle_to_segment_wide(paid_claims_triangle)
+
+    # Use only the "(All)" segment (single-segment triangles)
+    seg = next(iter(dr_wide))
+    dr_mat = dr_wide[seg]
+    closed_mat = closed_wide.get(seg, pd.DataFrame())
+    paid_mat = paid_wide.get(seg, pd.DataFrame())
+
+    age_cols = dr_mat.columns.tolist()
+    try:
+        age_cols_num = [int(a) for a in age_cols]
+    except (ValueError, TypeError):
+        age_cols_num = list(range(len(age_cols)))
+
+    # Step 2: Selected disposal rates per age
+    selected_dr: dict[Any, float] = {}
+    prev_dr = 0.0
+    for age in age_cols:
+        vals = dr_mat[age].dropna()
+        recent = vals.tail(dr_n_periods) if len(vals) >= dr_n_periods else vals
+        raw_dr = float(recent.mean()) if len(recent) > 0 else prev_dr
+        # Enforce monotone increase
+        selected_dr[age] = max(raw_dr, prev_dr)
+        prev_dr = selected_dr[age]
+    # Final age = 1.0 (fully developed)
+    if age_cols:
+        selected_dr[age_cols[-1]] = 1.0
+
+    # Step 3: Incremental severity per age
+    inc_paid = paid_mat.diff(axis=1).copy()
+    inc_paid.iloc[:, 0] = paid_mat.iloc[:, 0]
+    inc_closed = closed_mat.diff(axis=1).copy()
+    inc_closed.iloc[:, 0] = closed_mat.iloc[:, 0]
+    inc_sev_mat = (inc_paid / inc_closed).replace([np.inf, -np.inf], np.nan)
+
+    selected_sev: dict[Any, float] = {}
+    for age in age_cols:
+        if age in inc_sev_mat.columns:
+            vals = inc_sev_mat[age].replace([np.inf, -np.inf], np.nan).dropna()
+            recent = vals.tail(dr_n_periods) if len(vals) >= dr_n_periods else vals
+            selected_sev[age] = float(recent.median()) if len(recent) > 0 else np.nan
+        else:
+            selected_sev[age] = np.nan
+
+    # Tail severity: average over last n_tail_ages
+    tail_ages = age_cols[-n_tail_ages:] if len(age_cols) >= n_tail_ages else age_cols
+    tail_sev_vals = [selected_sev[a] for a in tail_ages if not np.isnan(selected_sev.get(a, np.nan))]
+    tail_sev = float(np.mean(tail_sev_vals)) if tail_sev_vals else np.nan
+    for age in tail_ages:
+        selected_sev[age] = tail_sev
+
+    # Forward-fill any remaining NaN severities
+    sev_series = pd.Series(selected_sev)
+    sev_series = sev_series.ffill()
+
+    # Step 4: Project future paid for each origin
+    ultimate_closed_map = {str(k): float(v) for k, v in ultimate_closed.items()}
+
+    summary_rows: list[dict[str, Any]] = []
+    for origin in dr_mat.index:
+        origin_str = str(origin)
+        u_closed = ultimate_closed_map.get(origin_str, np.nan)
+        if np.isnan(u_closed):
+            continue
+
+        # Latest age for this origin
+        valid_ages = dr_mat.loc[origin].dropna().index.tolist()
+        if not valid_ages:
+            continue
+        latest_age_label = valid_ages[-1]
+
+        # Latest paid (cumulative)
+        if latest_age_label in paid_mat.columns and pd.notna(paid_mat.at[origin, latest_age_label]):
+            latest_paid_val = float(paid_mat.at[origin, latest_age_label])
+        else:
+            valid_paid = paid_mat.loc[origin].dropna()
+            latest_paid_val = float(valid_paid.iloc[-1]) if len(valid_paid) > 0 else 0.0
+
+        # DR at latest known age
+        dr_at_latest = selected_dr.get(latest_age_label, 0.0)
+
+        # Project future ages
+        future_paid = 0.0
+        past_latest = False
+        prev_dr_val = dr_at_latest
+        for age in age_cols:
+            if not past_latest:
+                if age == latest_age_label:
+                    past_latest = True
+                continue
+            dr_age = selected_dr.get(age, prev_dr_val)
+            inc_closed_projected = max(u_closed * (dr_age - prev_dr_val), 0.0)
+            inc_sev = sev_series.get(age, tail_sev)
+            if not np.isnan(inc_sev):
+                future_paid += inc_closed_projected * inc_sev
+            prev_dr_val = dr_age
+
+        ultimate_paid = latest_paid_val + future_paid
+        ibnr = ultimate_paid - latest_paid_val
+        summary_rows.append(
+            {
+                "origin": origin_str,
+                "latest_age": latest_age_label,
+                "ultimate_closed_counts": u_closed,
+                "disposal_rate_at_latest": dr_at_latest,
+                "latest": latest_paid_val,
+                "ultimate": ultimate_paid,
+                "ibnr": ibnr,
+            }
+        )
+
+    summary = (
+        pd.DataFrame(summary_rows).set_index("origin").sort_index()
+        if summary_rows
+        else pd.DataFrame(columns=["latest", "ultimate", "ibnr"])
+    )
+    result = _method_result(
+        "Disposal Rate (Track B)",
+        summary,
+        (
+            "Disposal rate method: project future paid via incremental closed counts "
+            "× incremental severity at each age."
+        ),
+    )
+    selected_dr_series = pd.Series(selected_dr)
+    selected_sev_series = sev_series
+    artifacts = {
+        "track": "track_b",
+        "count_model": count_model,
+        "count_development_model": count_dev,
+        "selected_disposal_rates": selected_dr_series.to_dict(),
+        "selected_incremental_severities": selected_sev_series.to_dict(),
+        "selected_ldfs_by_age": {"closed_counts": _pattern_dict(count_model.ldf_)},
+        "selected_cdfs_by_age": {"closed_counts": _pattern_dict(count_model.cdf_)},
+        "tail_assumption": "implicit_via_dr_1.0",
     }
     return result, summary, artifacts
 

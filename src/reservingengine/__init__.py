@@ -1,6 +1,5 @@
 """Core rating engine package."""
 
-from ..ratingengine.overall_indication import indicated_premium, overall_indication
 from .reserving import (
     DEFAULT_TOLERANCES,
     MethodResult,
@@ -26,8 +25,6 @@ from .reserving import (
 )
 
 __all__ = [
-    "indicated_premium",
-    "overall_indication",
     "MethodResult",
     "DEFAULT_TOLERANCES",
     "build_triangle",

@@ -5,4 +5,19 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
-chainladder-python/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Build artifacts
+dist/
+
+# Reference PDFs and private study materials
+_references/
+
+# Secrets / local config
+.env
+.env.*
+
+# OS metadata
+.DS_Store
+Thumbs.db

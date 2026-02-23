@@ -1,5 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ratingengine", "src/reservingengine"]
+
 [project]
-name = "rating-engine"
+name = "exam5"
 version = "0.1.0"
 description = "Actuarial analysis project for pricing and reserving"
 requires-python = ">=3.11"

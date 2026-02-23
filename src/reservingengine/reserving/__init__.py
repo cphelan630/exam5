@@ -1,12 +1,5 @@
 """Reserving package split into Track A and Track B workflows."""
 
-from .chain_ladder_demo import (
-    age_to_age_factors,
-    cdf_by_age,
-    development_factor_averages,
-    project_ultimate_by_ay,
-    total_ultimate_with_tail,
-)
 from .compare import (
     DEFAULT_TOLERANCES,
     build_reconciliation_report,
@@ -17,11 +10,18 @@ from .compare import (
     snapshot_method_output,
 )
 from .diagnostics import (
+    calendar_year_diagnostic,
     link_ratio_table,
+    paid_vs_incurred_comparison,
     plot_link_ratio_heatmap,
     run_correlation_tests,
     selected_ldf_table,
     triangle_sanity_checks,
+    percent_paid_reported,
+    projection_comparison,
+    trend_summary,
+    count_triangle_diagnostics,
+    case_adequacy_indicator,
 )
 from .expected_claims_demo import (
     adjust_selected_ecr,
@@ -43,8 +43,10 @@ from .methods import (
     run_case_outstanding_chainladder,
     run_case_outstanding_friedland,
     run_chain_ladder,
+    run_disposal_rate,
     run_expected_loss,
     run_frequency_severity_friedland,
+    run_frequency_severity_technique2,
 )
 from .triangle_io import (
     build_exposure_triangle,
@@ -61,16 +63,16 @@ from .triangle_io import (
 __all__ = [
     "DEFAULT_TOLERANCES",
     "MethodResult",
+    "adjust_selected_ecr",
     "apply_tail",
-    "age_to_age_factors",
+    "build_environment_impact_table",
     "build_exposure_triangle",
     "build_reconciliation_report",
     "build_triangle",
-    "cdf_by_age",
+    "calendar_year_diagnostic",
     "compare_method_outputs",
     "compare_patterns_to_baseline",
     "compare_results_to_baseline",
-    "development_factor_averages",
     "default_chainladder_data_dir",
     "expected_claims_from_exposure",
     "expected_claims_from_premium",
@@ -80,9 +82,9 @@ __all__ = [
     "link_ratio_table",
     "load_baseline_fixture",
     "load_raw_dataset",
+    "paid_vs_incurred_comparison",
     "plot_link_ratio_heatmap",
     "resolve_dataset_path",
-    "project_ultimate_by_ay",
     "run_benktander",
     "run_bornhuetter_ferguson",
     "run_cape_cod",
@@ -90,18 +92,23 @@ __all__ = [
     "run_case_outstanding_friedland",
     "run_chain_ladder",
     "run_correlation_tests",
-    "selected_ecr_from_history",
+    "run_disposal_rate",
     "run_expected_loss",
     "run_frequency_severity_friedland",
+    "run_frequency_severity_technique2",
     "save_baseline_fixture",
-    "adjust_selected_ecr",
-    "build_environment_impact_table",
+    "selected_ecr_from_history",
+
     "selected_ldf_table",
     "snapshot_method_output",
     "triangle_sanity_checks",
+    "percent_paid_reported",
+    "projection_comparison",
+    "trend_summary",
+    "count_triangle_diagnostics",
+    "case_adequacy_indicator",
     "triangle_to_frame",
     "triangle_total",
-    "total_ultimate_with_tail",
     "validate_cum_incr_roundtrip",
     "validate_triangle_totals_match_raw",
 ]
