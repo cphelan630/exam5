@@ -96,17 +96,6 @@ def snapshot_method_output(
     }
 
 
-def load_baseline_fixture(path: str | Path) -> dict[str, Any]:
-    """Load a JSON baseline fixture."""
-
-    return json.loads(Path(path).read_text(encoding="utf-8"))
-
-
-def save_baseline_fixture(path: str | Path, payload: Mapping[str, Any]) -> None:
-    """Save a JSON baseline fixture."""
-
-    Path(path).write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
-
 
 def _iter_nested_metric_values(
     nested: Mapping[str, Mapping[str, Any]],

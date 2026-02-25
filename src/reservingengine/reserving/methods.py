@@ -8,7 +8,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from .triangle_io import _import_chainladder, build_exposure_triangle, triangle_to_frame
+from .triangle_io import _import_chainladder, _triangle_to_frame, build_exposure_triangle
 
 _META_COLUMNS = {"origin", "development", "valuation"}
 
@@ -48,7 +48,7 @@ def _segment_key_from_row(row: pd.Series, segment_cols: Sequence[str]) -> str:
 
 
 def _triangle_series_by_origin(triangle: Any) -> pd.Series:
-    frame = triangle_to_frame(triangle, origin_as_datetime=False)
+    frame = _triangle_to_frame(triangle, origin_as_datetime=False)
     segment_cols = [name for name in frame.index.names if name is not None]
     reset = frame.reset_index()
     reset["segment_key"] = reset.apply(
@@ -84,7 +84,7 @@ def _normalize_summary_index(summary: pd.DataFrame) -> pd.DataFrame:
 def _pattern_dict(pattern_triangle: Any | None) -> dict[str, dict[str, float]]:
     if pattern_triangle is None:
         return {}
-    frame = triangle_to_frame(pattern_triangle, origin_as_datetime=False)
+    frame = _triangle_to_frame(pattern_triangle, origin_as_datetime=False)
     segment_cols = [name for name in frame.index.names if name is not None]
     reset = frame.reset_index()
     reset["segment_key"] = reset.apply(
@@ -132,7 +132,7 @@ def _method_result(method_name: str, summary: pd.DataFrame, assumption_notes: st
     )
 
 
-def fit_development(
+def _fit_development(
     triangle: Any,
     *,
     average: str | Sequence[str] = "volume",
@@ -147,7 +147,7 @@ def fit_development(
     return transformed, dev
 
 
-def apply_tail(
+def _apply_tail(
     triangle: Any,
     *,
     tail_kind: str = "constant",
@@ -176,11 +176,11 @@ def _prepare_track_a_triangle(
     development_kwargs = dict(development_kwargs or {})
     tail_kwargs = dict(tail_kwargs or {})
 
-    dev_triangle, dev_model = fit_development(triangle, **development_kwargs)
+    dev_triangle, dev_model = _fit_development(triangle, **development_kwargs)
     out_triangle = dev_triangle
     tail_model = None
     if tail_kind is not None:
-        out_triangle, tail_model = apply_tail(
+        out_triangle, tail_model = _apply_tail(
             dev_triangle,
             tail_kind=tail_kind,
             **tail_kwargs,
@@ -351,7 +351,7 @@ def run_cape_cod(
 
 
 def _triangle_to_segment_wide(triangle: Any) -> dict[str, pd.DataFrame]:
-    frame = triangle_to_frame(triangle, origin_as_datetime=False)
+    frame = _triangle_to_frame(triangle, origin_as_datetime=False)
     segment_cols = [name for name in frame.index.names if name is not None]
     reset = frame.reset_index()
     reset["segment_key"] = reset.apply(
@@ -595,11 +595,11 @@ def run_frequency_severity_friedland(
     """Track B: Frequency-Severity using Triangle containers plus custom recombination."""
 
     cl = _import_chainladder()
-    count_prepared, count_dev = fit_development(
+    count_prepared, count_dev = _fit_development(
         cumulative_count_triangle,
         n_periods=count_n_periods,
     )
-    sev_prepared, sev_dev = fit_development(
+    sev_prepared, sev_dev = _fit_development(
         severity_triangle,
         n_periods=severity_n_periods,
     )
@@ -696,10 +696,10 @@ def run_frequency_severity_technique2(
     cl = _import_chainladder()
 
     # Step 1: Develop counts and severity to ultimate (Technique 1 base)
-    count_prepared, count_dev = fit_development(
+    count_prepared, count_dev = _fit_development(
         cumulative_count_triangle, n_periods=count_n_periods
     )
-    sev_prepared, sev_dev = fit_development(severity_triangle, n_periods=severity_n_periods)
+    sev_prepared, sev_dev = _fit_development(severity_triangle, n_periods=severity_n_periods)
     count_model = cl.Chainladder().fit(count_prepared)
     sev_model = cl.Chainladder().fit(sev_prepared)
 
@@ -837,7 +837,7 @@ def run_disposal_rate(
     cl = _import_chainladder()
 
     # Step 1: Develop closed counts to ultimate
-    count_prepared, count_dev = fit_development(
+    count_prepared, count_dev = _fit_development(
         closed_count_triangle, n_periods=count_n_periods
     )
     count_model = cl.Chainladder().fit(count_prepared)
@@ -985,37 +985,3 @@ def run_disposal_rate(
     return result, summary, artifacts
 
 
-def compare_method_outputs(
-    results: Sequence[MethodResult],
-    *,
-    baseline_method: str | None = None,
-) -> pd.DataFrame:
-    """Build a side-by-side method comparison table."""
-
-    rows = [
-        {
-            "method_name": r.method_name,
-            "latest_reported_total": r.latest_reported_total,
-            "ultimate_total": r.ultimate_total,
-            "ibnr_total": r.ibnr_total,
-            "assumption_notes": r.assumption_notes,
-        }
-        for r in results
-    ]
-    out = pd.DataFrame(rows)
-    if out.empty:
-        return out
-    baseline_name = baseline_method or out.iloc[0]["method_name"]
-    base = out.loc[out["method_name"] == baseline_name, "ultimate_total"]
-    if len(base) == 1:
-        base_val = float(base.iloc[0])
-        out["delta_vs_baseline"] = out["ultimate_total"] - base_val
-        out["pct_vs_baseline"] = np.where(
-            base_val != 0.0,
-            out["delta_vs_baseline"] / base_val,
-            np.nan,
-        )
-    else:
-        out["delta_vs_baseline"] = np.nan
-        out["pct_vs_baseline"] = np.nan
-    return out

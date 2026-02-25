@@ -50,52 +50,13 @@ def load_raw_dataset(dataset_name: str, data_dir: Path | None = None) -> pd.Data
     return pd.read_csv(path)
 
 
-def build_triangle(
-    df: pd.DataFrame,
-    *,
-    origin_col: str,
-    development_col: str,
-    value_cols: Sequence[str],
-    index_cols: Sequence[str] | None = None,
-    cumulative: bool = True,
-    origin_format: str | None = None,
-    development_format: str | None = None,
-) -> Any:
-    """Build a chainladder Triangle from tabular data."""
-
-    cl = _import_chainladder()
-    cols = list(index_cols or []) + [origin_col, development_col] + list(value_cols)
-    tri_df = df.loc[:, cols].copy()
-    return cl.Triangle(
-        tri_df,
-        origin=origin_col,
-        development=development_col,
-        index=list(index_cols or []),
-        columns=list(value_cols),
-        cumulative=cumulative,
-        origin_format=origin_format,
-        development_format=development_format,
-    )
-
-
-def triangle_to_frame(triangle: Any, *, origin_as_datetime: bool = False) -> pd.DataFrame:
+def _triangle_to_frame(triangle: Any, *, origin_as_datetime: bool = False) -> pd.DataFrame:
     """Convert a Triangle to a DataFrame, preserving dimensions when possible."""
 
     try:
         return triangle.to_frame(origin_as_datetime=origin_as_datetime, keepdims=True)
     except TypeError:
         return triangle.to_frame(origin_as_datetime=origin_as_datetime)
-
-
-def triangle_total(triangle: Any) -> float:
-    """Return the numeric total of all values in a Triangle."""
-
-    df = triangle_to_frame(triangle, origin_as_datetime=False)
-    value_cols = [c for c in df.columns if c not in {"origin", "development", "valuation"}]
-    if not value_cols:
-        return float("nan")
-    values = df[value_cols].apply(pd.to_numeric, errors="coerce")
-    return float(np.nansum(values.to_numpy(dtype=float)))
 
 
 def validate_triangle_totals_match_raw(
@@ -108,7 +69,13 @@ def validate_triangle_totals_match_raw(
     """Validate that raw tabular totals match Triangle totals."""
 
     raw_total = float(np.nansum(df[list(raw_value_cols)].to_numpy(dtype=float)))
-    tri_total = triangle_total(triangle)
+    tri_df = _triangle_to_frame(triangle, origin_as_datetime=False)
+    tri_value_cols = [c for c in tri_df.columns if c not in {"origin", "development", "valuation"}]
+    tri_total = (
+        float(np.nansum(tri_df[tri_value_cols].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)))
+        if tri_value_cols
+        else float("nan")
+    )
     return bool(np.isclose(raw_total, tri_total, atol=atol, rtol=0.0)), raw_total, tri_total
 
 
@@ -153,7 +120,7 @@ def build_exposure_triangle(
     """Create a sample-weight Triangle aligned to another Triangle's latest diagonal."""
 
     sample_weight = like_triangle.latest_diagonal.copy()
-    latest = triangle_to_frame(like_triangle.latest_diagonal, origin_as_datetime=False)
+    latest = _triangle_to_frame(like_triangle.latest_diagonal, origin_as_datetime=False)
     if "origin" not in latest.columns:
         raise ValueError("Could not locate origin column on latest diagonal frame.")
     aligned_exposure = _align_exposure_vector(exposure.astype(float), latest["origin"])

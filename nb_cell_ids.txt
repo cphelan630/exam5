@@ -1,0 +1,29 @@
+=== notebooks/exam5_chainladdermethod.ipynb ===
+  id=201bcfa9  type=code  len=55
+  id=4ad675ee  type=code  len=1517
+  id=7jegriy3n15  type=code  len=935
+=== notebooks/exam5_expectedclaimsmethod.ipynb ===
+  id=309c40f6  type=code  len=1082
+  id=24e74602  type=code  len=915
+=== notebooks/exam5_freqsev_disposalmethod.ipynb ===
+  id=NO_ID  type=code  len=1187
+  id=NO_ID  type=code  len=1023
+  id=5fo9w7xdgh  type=markdown  len=354
+  id=bpwrzm6zu54  type=code  len=378
+  id=NO_ID  type=code  len=2663
+=== notebooks/exam5_case_outstandingmethod.ipynb ===
+  id=NO_ID  type=code  len=1736
+  id=99v1m56vwhd  type=markdown  len=306
+  id=pqtssjuozj  type=code  len=495
+  id=NO_ID  type=code  len=2294
+=== notebooks/exam5_bf_benktandermethod.ipynb ===
+  id=NO_ID  type=code  len=891
+  id=NO_ID  type=code  len=653
+  id=9tfi3wmr7to  type=markdown  len=427
+  id=9ap9m6mnjbr  type=code  len=360
+=== notebooks/exam5_berquistshermanadjustments.ipynb ===
+  id=16b0ot7b40g  type=code  len=382
+  id=8uvbuq3sxcc  type=code  len=243
+  id=knpgv4ct5de  type=markdown  len=979
+  id=NO_ID  type=markdown  len=2566
+  id=9nfhg4co0ip  type=markdown  len=838

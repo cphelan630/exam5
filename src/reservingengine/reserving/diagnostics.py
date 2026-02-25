@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .triangle_io import _import_chainladder, triangle_to_frame
+from .triangle_io import _import_chainladder, _triangle_to_frame
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ from .triangle_io import _import_chainladder, triangle_to_frame
 
 def _triangle_to_wide(triangle: Any) -> pd.DataFrame:
     """Convert a single-column Triangle to a wide DataFrame (origins × dev ages)."""
-    frame = triangle_to_frame(triangle, origin_as_datetime=False)
+    frame = _triangle_to_frame(triangle, origin_as_datetime=False)
     reset = frame.reset_index()
     value_cols = [c for c in reset.columns if c not in {"origin", "development", "valuation"}
                   and not c.startswith("level_")]
@@ -61,24 +61,6 @@ def _origin_year_numeric(origin_str: str) -> int | None:
 # ---------------------------------------------------------------------------
 # Basic sanity check
 # ---------------------------------------------------------------------------
-
-def triangle_sanity_checks(triangle: Any) -> pd.DataFrame:
-    """Return basic triangle diagnostics for quick quality checks."""
-
-    frame = triangle_to_frame(triangle, origin_as_datetime=False)
-    value_cols = [c for c in frame.columns if c not in {"origin", "development", "valuation"}]
-    value_col = "values" if "values" in value_cols else value_cols[-1]
-    values = pd.to_numeric(frame[value_col], errors="coerce")
-    checks = {
-        "rows": int(len(frame)),
-        "non_null": int(values.notna().sum()),
-        "null": int(values.isna().sum()),
-        "min": float(np.nanmin(values.to_numpy(dtype=float))),
-        "max": float(np.nanmax(values.to_numpy(dtype=float))),
-        "total": float(np.nansum(values.to_numpy(dtype=float))),
-    }
-    return pd.DataFrame([checks])
-
 
 # ---------------------------------------------------------------------------
 # Link-ratio / age-to-age factor exhibit (Friedland Chapter 8 Exhibit 1)
@@ -213,17 +195,6 @@ def plot_link_ratio_heatmap(
     ax.set_ylabel("Origin Year")
     plt.tight_layout()
     return ax
-
-
-def selected_ldf_table(triangle: Any, **development_kwargs: Any) -> pd.DataFrame:
-    """Fit Development and return selected LDFs as a tidy table."""
-
-    cl = _import_chainladder()
-    dev = cl.Development(**development_kwargs).fit(triangle)
-    ldf = dev.ldf_.to_frame(origin_as_datetime=False, keepdims=True).reset_index()
-    if "values" in ldf.columns:
-        ldf = ldf.rename(columns={"values": "selected_ldf"})
-    return ldf
 
 
 # ---------------------------------------------------------------------------
@@ -447,81 +418,6 @@ def paid_vs_incurred_comparison(
 # Additional diagnostics for paid/reported, trends, counts, case adequacy
 # ---------------------------------------------------------------------------
 
-def percent_paid_reported(triangle: Any) -> pd.DataFrame:
-    """Return latest & ultimate values and percent-paid for each origin.
-
-    The calculation uses a Chainladder fit on ``triangle`` to obtain
-    ultimate estimates.  Returned DataFrame has columns ``latest``,
-    ``ultimate``, ``ibnr`` (ultimate minus latest), ``percent_paid``
-    and ``percent_unreported``.  Origin labels are preserved as the index.
-    """
-
-    cl = _import_chainladder()
-    # fit chainladder to get ultimates/ibnr
-    model = cl.Chainladder().fit(triangle)
-
-    latest = triangle.latest_diagonal.to_frame(origin_as_datetime=False, keepdims=True)
-    latest = latest.rename(columns={latest.columns[-1]: "latest"})
-
-    ultimate = model.ultimate_.to_frame(origin_as_datetime=False, keepdims=True)
-    ultimate = ultimate.rename(columns={ultimate.columns[-1]: "ultimate"})
-
-    ibnr = model.ibnr_.to_frame(origin_as_datetime=False, keepdims=True)
-    ibnr = ibnr.rename(columns={ibnr.columns[-1]: "ibnr"})
-
-    df = latest.join(ultimate).join(ibnr)
-    df.index.name = "origin"
-    df["percent_paid"] = df["latest"] / df["ultimate"]
-    df["percent_unreported"] = 1.0 - df["percent_paid"]
-    return df
-
-
-def projection_comparison(
-    paid_triangle: Any,
-    reported_triangle: Any,
-    **chainladder_kwargs: Any,
-) -> pd.DataFrame:
-    """Compare chain‐ladder projections side‑by‑side for paid vs reported.
-
-    Fits ``Chainladder(**chainladder_kwargs)`` to each input triangle and
-    returns a single wide DataFrame indexed by origin with the following
-    columns (multi‑level):
-
-    ``('paid',  'latest')``  latest diagonal paid value
-    ``('paid',  'ultimate')`` ultimate from model
-    ``('paid',  'ibnr')``    ibnr from model
-    ``('reported','latest')``  same for reported triangle
-    ``('reported','ultimate')``
-    ``('reported','ibnr')``
-    ``paid_to_reported_ultimate``   ratio of ultimate amounts (scalar for each origin)
-    """
-    cl = _import_chainladder()
-
-    def _extract(tri: Any, model: Any) -> pd.DataFrame:
-        latest = tri.latest_diagonal.to_frame(origin_as_datetime=False, keepdims=True)
-        latest = latest.rename(columns={latest.columns[-1]: "latest"})
-        ultimate = model.ultimate_.to_frame(origin_as_datetime=False, keepdims=True)
-        ultimate = ultimate.rename(columns={ultimate.columns[-1]: "ultimate"})
-        ibnr = model.ibnr_.to_frame(origin_as_datetime=False, keepdims=True)
-        ibnr = ibnr.rename(columns={ibnr.columns[-1]: "ibnr"})
-        df = latest.join(ultimate).join(ibnr)
-        return df
-
-    paid_model = cl.Chainladder(**chainladder_kwargs).fit(paid_triangle)
-    rep_model = cl.Chainladder(**chainladder_kwargs).fit(reported_triangle)
-
-    paid_df = _extract(paid_triangle, paid_model)
-    rep_df = _extract(reported_triangle, rep_model)
-
-    comp = pd.concat({"paid": paid_df, "reported": rep_df}, axis=1)
-    comp.index.name = "origin"
-    # compute ratio column at top level
-    comp["paid_to_reported_ultimate"] = (
-        comp[("paid", "ultimate")] / comp[("reported", "ultimate")]
-    )
-    return comp
-
-
 def trend_summary(triangle: Any) -> dict[str, pd.DataFrame]:
     """Simple slope‑based trend diagnostics for a single triangle.
 
@@ -610,63 +506,3 @@ def _is_number(s: str) -> bool:
         return False
 
 
-def count_triangle_diagnostics(triangle: Any) -> dict[str, Any]:
-    """Diagnostics tailored to claim‑count triangles.
-
-    Returns a dict with:
-      ``"link_ratio_table"`` – same output as :func:`link_ratio_table`.
-      ``"percent_closed_by_age"`` – Series giving 1 − 1/(vol‑wtd) factor.
-    """
-    lr = link_ratio_table(triangle)
-    if "Vol Wtd Avg" in lr.index:
-        vol = lr.loc["Vol Wtd Avg"].astype(float)
-        pct_closed = 1.0 - 1.0 / vol
-    else:
-        pct_closed = pd.Series(dtype=float)
-    return {"link_ratio_table": lr, "percent_closed_by_age": pct_closed}
-
-
-def case_adequacy_indicator(
-    paid_triangle: Any, incurred_triangle: Any
-) -> pd.DataFrame:
-    """Quick indicator of case reserve adequacy trends.
-
-    Uses :func:`paid_vs_incurred_comparison` to obtain the latest paid‑to‑
-    incurred ratios and computes the slope of that series over origin years.
-    """
-    comp = paid_vs_incurred_comparison(paid_triangle, incurred_triangle)
-    ratio = comp["paid_to_incurred_latest"]["paid_to_incurred"]
-    orig_nums = pd.Series([_origin_year_numeric(o) for o in ratio.index], index=ratio.index)
-    slope = float(
-        np.polyfit(orig_nums.dropna().values.astype(float), ratio.dropna().values.astype(float), 1)[0]
-    ) if ratio.dropna().shape[0] >= 2 else float(np.nan)
-    df = pd.DataFrame({"paid_to_incurred": ratio})
-    df["trend_slope"] = slope
-    return df
-
-
-# ---------------------------------------------------------------------------
-# Correlation tests  (Mack-style, already present)
-# ---------------------------------------------------------------------------
-
-def run_correlation_tests(
-    triangle: Any,
-    *,
-    p_critical_development: float = 0.5,
-    p_critical_valuation: float = 0.1,
-    valuation_total: bool = True,
-) -> dict[str, Any]:
-    """Run Mack-style development and valuation correlation diagnostics."""
-
-    cl = _import_chainladder()
-
-    dev_corr = cl.DevelopmentCorrelation(triangle, p_critical=p_critical_development)
-    val_corr = cl.ValuationCorrelation(
-        triangle,
-        p_critical=p_critical_valuation,
-        total=valuation_total,
-    )
-    return {
-        "development_correlation": dev_corr,
-        "valuation_correlation": val_corr,
-    }
