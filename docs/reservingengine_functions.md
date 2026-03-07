@@ -6,8 +6,6 @@ All public and private functions defined in `src/reservingengine/reserving/`.
 - `Genuine` — implements domain logic not available in chainladder
 - `Orchestration` — thin wrapper, but provides uniform interface across methods
 
-Functions previously listed as `Thin wrapper` have been removed — use chainladder's API directly.
-
 ---
 
 ## `triangle_io.py` — Triangle IO Utilities
@@ -15,13 +13,7 @@ Functions previously listed as `Thin wrapper` have been removed — use chainlad
 | Function | Value | Description |
 |---|---|---|
 | `_import_chainladder` | Orchestration | Lazy-import guard for the `chainladder` package; raises a clear error if not installed. |
-| `project_root` | Orchestration | Return the repository root based on this module's location. |
-| `default_chainladder_data_dir` | Orchestration | Return the default local chainladder sample-data directory. |
-| `resolve_dataset_path` | Orchestration | Resolve a dataset name to a CSV path in the local chainladder data folder. |
-| `load_raw_dataset` | Orchestration | Load a local chainladder sample CSV as a `pd.DataFrame`. |
 | `_triangle_to_frame` | Orchestration | **Private.** `triangle.to_frame(keepdims=True)` with a try/except API-compatibility fallback; used by all internal functions. |
-| `validate_triangle_totals_match_raw` | Genuine | Validates that raw tabular column totals equal the Triangle total; data integrity check. |
-| `validate_cum_incr_roundtrip` | Genuine | Tests cumulative → incremental → cumulative round-trip consistency with tolerance. |
 | `_align_exposure_vector` | Genuine | **Private.** Fuzzy-matches an exposure `pd.Series` to triangle origin labels (tries str fallback). |
 | `build_exposure_triangle` | Genuine | Constructs a sample-weight Triangle aligned to another Triangle's latest diagonal. |
 
@@ -51,38 +43,28 @@ Functions previously listed as `Thin wrapper` have been removed — use chainlad
 | `_pattern_dict` | Genuine | Convert a pattern Triangle (LDF/CDF) to a nested `dict[segment][age]` dict. |
 | `_summary_from_model` | Genuine | Build a `latest / ultimate / ibnr` DataFrame from a fitted chainladder model. |
 | `_method_result` | Genuine | Construct a `MethodResult` from a summary DataFrame. |
-| `_fit_development` | Orchestration | **Private.** `cl.Development(...).fit_transform(tri)` — shared by all Track B methods. |
+| `_fit_development` | Orchestration | **Private.** `cl.Development(...).fit_transform(tri)` — shared by all Track A methods. |
 | `_apply_tail` | Orchestration | **Private.** `cl.TailConstant/TailCurve(...).fit_transform(tri)`. |
 | `_prepare_track_a_triangle` | Orchestration | Apply `_fit_development` + optional tail; return prepared Triangle and model artifacts. |
 | `_run_track_a_estimator` | Genuine | Core orchestration: development prep → estimator fit → artifact extraction. Shared by all Track A methods. |
-| `_triangle_to_segment_wide` | Genuine | Split a Triangle into `dict[segment → wide DataFrame]` for Track B methods. |
-| `_align_external_origin_series` | Genuine | Align an external Series to a Triangle summary index (plain or MultiIndex, with str fallback). |
-| `_origin_to_year_series` | Genuine | Convert an origin index to numeric calendar years for log-linear trend fitting. |
 
-### Public Track A Functions
+### Public Functions
+
+All methods return a uniform `(MethodResult, summary_df, artifacts_dict)` triple.
 
 | Function | Value | Description |
 |---|---|---|
-| `run_chain_ladder` | Orchestration | Track A Chain Ladder; returns a uniform `(MethodResult, summary, artifacts)` triple. |
-| `run_expected_loss` | Orchestration | Track A Expected Loss with exposure weighting; uniform return interface. |
-| `run_bornhuetter_ferguson` | Orchestration | Track A Bornhuetter-Ferguson with exposure; uniform return interface. |
-| `run_benktander` | Orchestration | Track A Benktander with exposure; uniform return interface. |
-| `run_cape_cod` | Orchestration | Track A Cape Cod with exposure, trend, decay; uniform return interface. |
-| `run_case_outstanding_chainladder` | Orchestration | Uses `cl.CaseOutstanding` + `Chainladder`; joins two triangles and standardises output. |
+| `run_chain_ladder` | Orchestration | Track A Chain Ladder via `cl.Chainladder()`. |
+| `run_expected_loss` | Orchestration | Track A Expected Loss with exposure weighting via `cl.ExpectedLoss()`. |
+| `run_bornhuetter_ferguson` | Orchestration | Track A Bornhuetter-Ferguson with exposure via `cl.BornhuetterFerguson()`. |
+| `run_benktander` | Orchestration | Track A Benktander with exposure via `cl.Benktander()`. |
+| `run_cape_cod` | Orchestration | Track A Cape Cod with exposure, trend, decay via `cl.CapeCod()`. |
+| `run_case_outstanding_chainladder` | Orchestration | Uses `cl.CaseOutstanding` + `Chainladder`; joins paid and incurred triangles and standardises output. |
 
 **Chainladder equivalents for removed functions:**
 - `fit_development(tri, ...)` → `cl.Development(...).fit_transform(tri)`
 - `apply_tail(tri, tail_kind='constant', ...)` → `cl.TailConstant(**kwargs).fit_transform(tri)` or `cl.TailCurve(...)`
 - `compare_method_outputs(results)` → `pd.DataFrame([vars(r) for r in results])`
-
-### Public Track B Functions
-
-| Function | Value | Description |
-|---|---|---|
-| `run_case_outstanding_friedland` | **Genuine** | Friedland Ch. 12: paid-to-prior-case + case-to-prior-case ratio projection. No chainladder equivalent. |
-| `run_frequency_severity_friedland` | **Genuine** | Friedland Ch. 11 Technique 1: develop counts and severities separately, combine. No chainladder equivalent. |
-| `run_frequency_severity_technique2` | **Genuine** | Friedland Ch. 11 Technique 2: log-linear trend projection from mature years applied to exposure. Entirely custom. |
-| `run_disposal_rate` | **Genuine** | Friedland Ch. 13: disposal rate method with monotone enforcement and incremental severity. Entirely custom. |
 
 ---
 
@@ -148,10 +130,9 @@ Functions previously listed as `Thin wrapper` have been removed — use chainlad
 
 ## Summary
 
-| Module | Genuine | Orchestration | Removed (thin wrappers) |
-|---|---|---|---|
-| `triangle_io.py` | 3 | 7 | 3 (`build_triangle`, `triangle_to_frame`→private, `triangle_total`) |
-| `methods.py` | 11 | 8 | 3 (`fit_development`→private, `apply_tail`→private, `compare_method_outputs`) |
-| `diagnostics.py` | 7 | 1 | 7 (`triangle_sanity_checks`, `selected_ldf_table`, `percent_paid_reported`, `projection_comparison`, `count_triangle_diagnostics`, `case_adequacy_indicator`, `run_correlation_tests`) |
-| `compare.py` | 6 | 2 | 2 (`load_baseline_fixture`, `save_baseline_fixture`) |
-| **Total public** | **27** | **18** | **15 removed** |
+| Module | Public | Private helpers |
+|---|---|---|
+| `triangle_io.py` | `build_exposure_triangle` | `_import_chainladder`, `_triangle_to_frame`, `_align_exposure_vector` |
+| `methods.py` | `run_chain_ladder`, `run_expected_loss`, `run_bornhuetter_ferguson`, `run_benktander`, `run_cape_cod`, `run_case_outstanding_chainladder`, `MethodResult` | `_detect_value_column`, `_segment_key_from_row`, `_triangle_series_by_origin`, `_normalize_summary_index`, `_pattern_dict`, `_summary_from_model`, `_method_result`, `_fit_development`, `_apply_tail`, `_prepare_track_a_triangle`, `_run_track_a_estimator` |
+| `diagnostics.py` | `link_ratio_table`, `plot_link_ratio_heatmap`, `calendar_year_diagnostic`, `paid_vs_incurred_comparison`, `trend_summary` | `_triangle_to_wide`, `_medial_average`, `_origin_year_numeric`, `_is_number` |
+| `compare.py` | `snapshot_method_output`, `compare_results_to_baseline`, `compare_patterns_to_baseline`, `build_reconciliation_report`, `DEFAULT_TOLERANCES` | `_to_float_or_none`, `_summary_to_nested_dict`, `_iter_nested_metric_values`, `_track_key`, `_reason_code`, `_flatten_pattern` |

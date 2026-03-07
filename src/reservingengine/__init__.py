@@ -1,4 +1,4 @@
-"""Core rating engine package."""
+"""Core reserving engine package."""
 
 from .reserving import (
     DEFAULT_TOLERANCES,
@@ -9,23 +9,16 @@ from .reserving import (
     compare_patterns_to_baseline,
     compare_results_to_baseline,
     link_ratio_table,
-    load_raw_dataset,
     paid_vs_incurred_comparison,
     plot_link_ratio_heatmap,
     run_benktander,
     run_bornhuetter_ferguson,
     run_cape_cod,
     run_case_outstanding_chainladder,
-    run_case_outstanding_friedland,
     run_chain_ladder,
     run_expected_loss,
-    run_frequency_severity_friedland,
-    run_frequency_severity_technique2,
-    run_disposal_rate,
     snapshot_method_output,
     trend_summary,
-    validate_cum_incr_roundtrip,
-    validate_triangle_totals_match_raw,
 )
 
 __all__ = [
@@ -37,21 +30,14 @@ __all__ = [
     "compare_patterns_to_baseline",
     "compare_results_to_baseline",
     "link_ratio_table",
-    "load_raw_dataset",
     "paid_vs_incurred_comparison",
     "plot_link_ratio_heatmap",
     "run_benktander",
     "run_bornhuetter_ferguson",
     "run_cape_cod",
     "run_case_outstanding_chainladder",
-    "run_case_outstanding_friedland",
     "run_chain_ladder",
-    "run_disposal_rate",
     "run_expected_loss",
-    "run_frequency_severity_friedland",
-    "run_frequency_severity_technique2",
     "snapshot_method_output",
     "trend_summary",
-    "validate_cum_incr_roundtrip",
-    "validate_triangle_totals_match_raw",
 ]
