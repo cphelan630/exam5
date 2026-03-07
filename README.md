@@ -160,12 +160,6 @@ exam_5/
 
 ## Development
 
-Run tests:
-
-```bash
-uv run pytest -q
-```
-
 Run lint:
 
 ```bash
