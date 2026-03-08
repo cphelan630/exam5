@@ -61,6 +61,15 @@ Reference notebooks for the Python tools used throughout the study notebooks:
 | [matplotlib_intermediate.ipynb](notebooks/python_basics/matplotlib_intermediate.ipynb) | Matplotlib/Seaborn plotting patterns |
 | [modeling_intro.ipynb](notebooks/python_basics/modeling_intro.ipynb) | Intro to scikit-learn modeling concepts used in reserving |
 
+### MAS (`notebooks/mas/`)
+
+Supplemental notebooks for MAS-I exam topics relevant to actuarial practice:
+
+| Notebook | Topic |
+|---|---|
+| [credibility.ipynb](notebooks/mas/credibility.ipynb) | Credibility theory and Bühlmann models |
+| [timeseries.ipynb](notebooks/mas/timeseries.ipynb) | Time series analysis and forecasting |
+
 ---
 
 ## Setup (see quick start above)
@@ -137,11 +146,14 @@ exam_5/
 │   │   ├── exam5_incremental_additive_and_sample_weights.ipynb
 │   │   ├── exam5_full_reserving_analysis.ipynb
 │   │   └── exam5_fullworkflow_methodcomparison.ipynb
-│   └── python_basics/
-│       ├── numpy_intermediate.ipynb
-│       ├── pandas_intermediate.ipynb
-│       ├── matplotlib_intermediate.ipynb
-│       └── modeling_intro.ipynb
+│   ├── python_basics/
+│   │   ├── numpy_intermediate.ipynb
+│   │   ├── pandas_intermediate.ipynb
+│   │   ├── matplotlib_intermediate.ipynb
+│   │   └── modeling_intro.ipynb
+│   └── mas/
+│       ├── credibility.ipynb
+│       └── timeseries.ipynb
 ├── src/
 │   └── reservingengine/              # Reserving helper library
 │       └── reserving/

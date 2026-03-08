@@ -113,10 +113,11 @@ All methods return a uniform `(MethodResult, summary_df, artifacts_dict)` triple
 | `_reason_code` | Genuine | Returns a structured failure reason code based on method name and tail assumptions. |
 | `_flatten_pattern` | Genuine | Recursively flattens a nested pattern dict to `("|"-joined key, value)` pairs. |
 
-### Public Functions
+### Public Functions and Constants
 
-| Function | Value | Description |
+| Function / Constant | Value | Description |
 |---|---|---|
+| `DEFAULT_TOLERANCES` | Genuine | Dict of default tolerance values keyed by metric scope and track (`pattern_abs`, `ay_rel_track_a`, `ay_rel_track_b`, `total_rel_track_a`, `total_rel_track_b`). |
 | `snapshot_method_output` | **Genuine** | Serialises a full method run (result + artifacts + metadata) to a JSON-compatible dict for baseline storage. |
 | `compare_results_to_baseline` | **Genuine** | Differential testing of totals and AY-level values against a snapshot, with per-track tolerances and reason codes. |
 | `compare_patterns_to_baseline` | **Genuine** | Pattern-level (LDF/CDF) regression comparison against a snapshot with absolute tolerance. |
