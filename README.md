@@ -20,13 +20,15 @@ Jupyter notebooks covering the pricing and reserving content of **CAS Exam 5 (Ba
 
 ### Pricing (`notebooks/pricing/`)
 
-Content from Werner & Modlin, organized into three groups:
+Content from Werner & Modlin, one notebook per topic group:
 
 | Notebook | Topic |
 |---|---|
-| [exam5_data_and_metrics.ipynb](notebooks/pricing/exam5_data_and_metrics.ipynb) | Data aggregation, exposure bases, key metrics (WM Ch. 1–4) |
-| [exam5_traditionalratemaking.ipynb](notebooks/pricing/exam5_traditionalratemaking.ipynb) | Overall indication — pure premium and loss ratio methods (WM Ch. 5–8) |
-| [exam5_classratemaking.ipynb](notebooks/pricing/exam5_classratemaking.ipynb) | Class ratemaking — univariate relativities, credibility, special topics (WM Ch. 9–12) |
+| [exam5_data_and_metrics.ipynb](notebooks/pricing/exam5_data_and_metrics.ipynb) | Data aggregation, exposure bases, loss measures, accounting, financial ratios (WM Ch. 3–5) |
+| [exam5_traditionalratemaking.ipynb](notebooks/pricing/exam5_traditionalratemaking.ipynb) | Overall indication — on-level premium, development, trends, expenses, pure premium & loss ratio methods (WM Ch. 6–9) |
+| [exam5_classratemaking.ipynb](notebooks/pricing/exam5_classratemaking.ipynb) | Classification ratemaking — univariate/multivariate methods, GLMs, credibility, ILFs, LER, WC, ITV (WM Ch. 10–14) |
+| [exam5_individualriskrating.ipynb](notebooks/pricing/exam5_individualriskrating.ipynb) | Individual risk rating — ISO GL & NCCI WC experience rating, schedule rating, large deductibles, composite rating, retrospective rating (WM Ch. 15) |
+| [exam5_rateimplementation.ipynb](notebooks/pricing/exam5_rateimplementation.ipynb) | Rate implementation — base rate derivation, expense fees, regulatory/operational constraints, marketing considerations, underwriting cycles (WM Ch. 16) |
 
 Pricing notebooks implement all calculations directly in-notebook using `chainladder`, `pandas`, and `numpy`. No local `src/` package is required.
 
@@ -133,7 +135,9 @@ exam_5/
 │   ├── pricing/
 │   │   ├── exam5_data_and_metrics.ipynb
 │   │   ├── exam5_traditionalratemaking.ipynb
-│   │   └── exam5_classratemaking.ipynb
+│   │   ├── exam5_classratemaking.ipynb
+│   │   ├── exam5_individualriskrating.ipynb
+│   │   └── exam5_rateimplementation.ipynb
 │   ├── reserving/
 │   │   ├── exam5_chainladdermethod.ipynb
 │   │   ├── exam5_bf_benktandermethod.ipynb
@@ -200,6 +204,8 @@ uv add --group dev <package> # dev-only dependency
 ## References
 
 - [CAS Exam 5 Syllabus and Content Outline](https://www.casact.org/exam/exam-5-basic-techniques-ratemaking-and-estimating-claim-liabilities)
-- Friedland, J. *Estimating Unpaid Claims Using Basic Techniques* — CAS study note, primary reserving reference
-- Werner, G. & Modlin, C. *Basic Ratemaking* — CAS study note, primary pricing reference
+- Friedland, J. *Estimating Unpaid Claims Using Basic Techniques*, Casualty Actuarial Society, 2010 — primary reserving reference
+- Werner, G. & Modlin, C. *Basic Ratemaking* (5th ed.), Casualty Actuarial Society, 2016 — primary pricing reference
+- Tse, Y.K. *Non-life Insurance Mathematics* (2nd ed.), Springer, 2009 — credibility theory; source for `notebooks/mas/credibility.ipynb`
+- Cowpertwait, P.S.P. & Metcalfe, A.V. *Introductory Time Series with R*, Springer, 2009 — source for `notebooks/mas/timeseries.ipynb`
 - [`chainladder-python`](https://github.com/casact/chainladder-python) — open-source actuarial library by the CAS
