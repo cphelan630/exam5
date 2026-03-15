@@ -28,7 +28,8 @@ Content from Werner & Modlin, one notebook per topic group:
 | [exam5_traditionalratemaking.ipynb](notebooks/pricing/exam5_traditionalratemaking.ipynb) | Overall indication — on-level premium, development, trends, expenses, pure premium & loss ratio methods (WM Ch. 6–9) |
 | [exam5_classratemaking.ipynb](notebooks/pricing/exam5_classratemaking.ipynb) | Classification ratemaking — univariate/multivariate methods, GLMs, credibility, ILFs, LER, WC, ITV (WM Ch. 10–14) |
 | [exam5_individualriskrating.ipynb](notebooks/pricing/exam5_individualriskrating.ipynb) | Individual risk rating — ISO GL & NCCI WC experience rating, schedule rating, large deductibles, composite rating, retrospective rating (WM Ch. 15) |
-| [exam5_rateimplementation.ipynb](notebooks/pricing/exam5_rateimplementation.ipynb) | Rate implementation — base rate derivation, expense fees, regulatory/operational constraints, marketing considerations, underwriting cycles (WM Ch. 16) |
+| [exam5_rateimplementation.ipynb](notebooks/pricing/exam5_rateimplementation.ipynb) | Rate implementation — base rate derivation, expense fees, regulatory/operational constraints, non-pricing solutions, minimum premium, rating algorithm, underwriting cycles (WM Ch. 16) |
+| [exam5_asops_and_principles.ipynb](notebooks/pricing/exam5_asops_and_principles.ipynb) | ASOPs and ratemaking principles — ASOP 12 (Risk Classification), ASOP 13 (Trending), ASOP 43 (Unpaid Claim Estimates), CAS Statement of Principles Regarding P&C Ratemaking |
 
 Pricing notebooks implement all calculations directly in-notebook using `chainladder`, `pandas`, and `numpy`. No local `src/` package is required.
 
@@ -47,8 +48,10 @@ Content from Friedland, one notebook per method or topic group:
 | [exam5_triangle_diagnostics_adjustments.ipynb](notebooks/reserving/exam5_triangle_diagnostics_adjustments.ipynb) | Triangle diagnostics: link ratio table, calendar year test, heatmap, trends |
 | [exam5_development_estimators.ipynb](notebooks/reserving/exam5_development_estimators.ipynb) | Development pattern selection and estimators |
 | [exam5_incremental_additive_and_sample_weights.ipynb](notebooks/reserving/exam5_incremental_additive_and_sample_weights.ipynb) | Incremental additive method and sample weight selection |
-| [exam5_full_reserving_analysis.ipynb](notebooks/reserving/exam5_full_reserving_analysis.ipynb) | End-to-end template: all methods, diagnostics, and comparison |
+| [exam5_full_reserving_analysis.ipynb](notebooks/reserving/exam5_full_reserving_analysis.ipynb) | End-to-end template: all methods, diagnostics, A/E comparison, and roll forward analysis |
 | [exam5_fullworkflow_methodcomparison.ipynb](notebooks/reserving/exam5_fullworkflow_methodcomparison.ipynb) | Method comparison and reconciliation workflow |
+| [exam5_alae_estimation.ipynb](notebooks/reserving/exam5_alae_estimation.ipynb) | ALAE estimation — ratio methods, development method on ALAE triangle, BF applied to ALAE (Friedland Ch. 16) |
+| [exam5_recoveries_reinsurance.ipynb](notebooks/reserving/exam5_recoveries_reinsurance.ipynb) | Recoveries and reinsurance — salvage & subrogation estimation, quota share and XOL mechanics, net/ceded/gross reserve projection (Friedland Ch. 17–18) |
 
 Reserving notebooks use datasets bundled with `chainladder-python` (Friedland industry auto, XYZ, Berquist-Sherman) — no external data download needed. Most also import helper functions from `src/reservingengine/`.
 
@@ -137,7 +140,8 @@ exam_5/
 │   │   ├── exam5_traditionalratemaking.ipynb
 │   │   ├── exam5_classratemaking.ipynb
 │   │   ├── exam5_individualriskrating.ipynb
-│   │   └── exam5_rateimplementation.ipynb
+│   │   ├── exam5_rateimplementation.ipynb
+│   │   └── exam5_asops_and_principles.ipynb
 │   ├── reserving/
 │   │   ├── exam5_chainladdermethod.ipynb
 │   │   ├── exam5_bf_benktandermethod.ipynb
@@ -149,7 +153,9 @@ exam_5/
 │   │   ├── exam5_development_estimators.ipynb
 │   │   ├── exam5_incremental_additive_and_sample_weights.ipynb
 │   │   ├── exam5_full_reserving_analysis.ipynb
-│   │   └── exam5_fullworkflow_methodcomparison.ipynb
+│   │   ├── exam5_fullworkflow_methodcomparison.ipynb
+│   │   ├── exam5_alae_estimation.ipynb
+│   │   └── exam5_recoveries_reinsurance.ipynb
 │   ├── python_basics/
 │   │   ├── numpy_intermediate.ipynb
 │   │   ├── pandas_intermediate.ipynb
