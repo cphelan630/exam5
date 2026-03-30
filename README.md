@@ -75,6 +75,27 @@ Supplemental notebooks for MAS-I exam topics relevant to actuarial practice:
 | [credibility.ipynb](notebooks/mas/credibility.ipynb) | Credibility theory and Bühlmann models |
 | [timeseries.ipynb](notebooks/mas/timeseries.ipynb) | Time series analysis and forecasting |
 
+### Past Exam Notes (`notebooks/past_exam_notes/`)
+
+Worked notes and statistics for past Exam 5 sittings:
+
+| Notebook | Topic |
+|---|---|
+| [exam5_fall2019.ipynb](notebooks/past_exam_notes/exam5_fall2019.ipynb) | Fall 2019 exam statistics, commentary, and problem notes |
+
+---
+
+## DrSeussFCAS — Poem Study Aids
+
+`DrSeussFCAS/` contains 37 Jupyter notebooks written as Dr. Seuss-style rhyming poems — one notebook per CAS learning task. Each poem is a compact, exam-targeted mnemonic covering the key concepts, formulas, and judgment points for that task. Use these for active recall and last-mile review.
+
+| Section | Folder | Coverage |
+|---|---|---|
+| Ratemaking (A-tasks) | [`DrSeussFCAS/Ratemaking/`](DrSeussFCAS/Ratemaking/) | 17 notebooks — A1 through A17 (Werner & Modlin learning tasks) |
+| Reserving (B-tasks) | [`DrSeussFCAS/Reserving/`](DrSeussFCAS/Reserving/) | 20 notebooks — B1 through B20 (Friedland learning tasks) |
+
+Notebooks are numbered to match the CAS learning task sequence and stand alone — no kernel required to read the poems.
+
 ---
 
 ## Setup (see quick start above)
@@ -161,9 +182,15 @@ exam_5/
 │   │   ├── pandas_intermediate.ipynb
 │   │   ├── matplotlib_intermediate.ipynb
 │   │   └── modeling_intro.ipynb
-│   └── mas/
-│       ├── credibility.ipynb
-│       └── timeseries.ipynb
+│   ├── mas/
+│   │   ├── credibility.ipynb
+│   │   └── timeseries.ipynb
+│   └── past_exam_notes/
+│       └── exam5_fall2019.ipynb
+├── DrSeussFCAS/                      # Poem-based study aids, one notebook per learning task
+│   ├── Ratemaking/                   # A1–A17 (Werner & Modlin)
+│   └── Reserving/                    # B1–B20 (Friedland)
+├── images/                           # Supporting images for notebooks
 ├── src/
 │   └── reservingengine/              # Reserving helper library
 │       └── reserving/
